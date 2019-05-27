@@ -1,0 +1,30 @@
+from django.contrib.auth import authenticate
+from accounts.models import User
+from rest_framework import serializers, generics
+
+class CreateUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['username', 'password']
+        extra_kwargs = {'password': {'write_only':True}}
+
+    def create(self, validated_data):
+        user = User.objects.create_user(validated_data['username'], validated_data['password'])
+        return user
+
+class UserSerializer(serializers.ModelSerializer):
+    def validate_password(self, value: str) -> str:
+        return make_password(value)
+    class Meta:
+        model = User
+        exclude = ['password',]
+
+class LoginUserSerializer(serializers.Serializer):
+    username = serializers.CharField()
+    password = serializers.CharField()
+
+    def validate(self, data):
+        user = authenticate(**data)
+        if user and user.is_active:
+            return user
+        raise serializers.ValidationError("Credentials wrong")
